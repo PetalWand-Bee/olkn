@@ -1,0 +1,148 @@
+import random
+import logging
+
+logging.basicConfig(
+    filename='simulation.log',
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    encoding='utf-8'
+)
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+logging.getLogger().addHandler(console_handler)
+
+
+class Human:
+    def __init__(self, name="Ник"):
+        self.name = name
+        self.gladness = 50
+        self.satiety = 50
+        self.money = 100
+        self.alive = True
+
+    def get_home(self, house):
+        self.home = house
+        logging.info(f"{self.name} переехал в новый дом.")
+
+    def get_job(self, job):
+        self.job = job
+        logging.info(f"{self.name} устроился на работу: {job.job}.")
+
+    def eat(self):
+        if self.home.food <= 0:
+            logging.warning(f"{self.name} хотел поесть, но дома нет еды! Идет в магазин.")
+            self.shopping("food")
+            return
+        self.satiety += 10
+        self.home.food -= 5
+        logging.info(f"{self.name} поел. Сытость: {self.satiety}, Еды осталось: {self.home.food}")
+
+    def work(self):
+        if self.car.fuel < 10:
+            logging.warning(f"{self.name} не может ехать на работу: мало топлива ({self.car.fuel}). Заправляется.")
+            self.shopping("fuel")
+            return
+        self.money += self.job.salary
+        self.gladness -= self.job.gladness_decrease
+        self.car.fuel -= 5
+        logging.info(f"{self.name} поработал. Зарплата: {self.job.salary}$. Деньги: {self.money}$. Радость: {self.gladness}")
+
+    def shopping(self, manage):
+        if manage == "food":
+            self.money -= 20
+            self.home.food += 30
+            logging.info(f"{self.name} купил еды. Еды дома: {self.home.food}, Денег: {self.money}$")
+        elif manage == "fuel":
+            self.money -= 15
+            self.car.fuel += 50
+            logging.info(f"{self.name} заправил машину. Топливо: {self.car.fuel}, Денег: {self.money}$")
+
+    def chill(self):
+        self.gladness += 10
+        self.satiety -= 5
+        logging.info(f"{self.name} отдыхает. Радость: {self.gladness}, Сытость: {self.satiety}")
+
+    def clean_home(self):
+        self.home.mess = 0
+        self.gladness -= 5
+        logging.info(f"{self.name} убрался в доме. В доме чисто.")
+
+    def days_indexes(self, day):
+        logging.info(f"--- ДЕНЬ {day} ({self.name}) ---")
+        logging.info(f"Статус: Сытость={self.satiety} | Радость={self.gladness} | Деньги={self.money}$ | Еда={self.home.food} | Топливо={self.car.fuel}")
+
+    td = property()
+
+    def is_alive(self):
+        if self.satiety < 0:
+            logging.error(f"{self.name} умер от голода...")
+            self.alive = False
+        elif self.gladness <= 0:
+            logging.error(f"{self.name} впал в глубокую депрессию и умер...")
+            self.alive = False
+        elif self.money < -50:
+            logging.error(f"{self.name} обанкротился и покинул симуляцию...")
+            self.alive = False
+        return self.alive
+
+    def simulate_day(self, day):
+        if not self.is_alive():
+            return False
+        
+        self.days_indexes(day)
+        dice = random.randint(1, 4)
+        
+        if self.satiety < 20:
+            self.eat()
+        elif self.gladness < 20:
+            self.chill()
+        elif self.money < 30:
+            self.work()
+        elif self.home.food < 10:
+            self.shopping("food")
+        elif dice == 1:
+            self.chill()
+        elif dice == 2:
+            self.work()
+        elif dice == 3:
+            self.eat()
+        else:
+            self.clean_home()
+        return True
+
+
+class House:
+    def __init__(self):
+        self.food = 20
+        self.mess = 0
+
+
+class Auto:
+    def __init__(self, brand):
+        self.brand = brand
+        self.fuel = 60
+
+
+class Job:
+    def __init__(self, job_title, salary, gladness_decrease):
+        self.job = job_title
+        self.salary = salary
+        self.gladness_decrease = gladness_decrease
+
+
+if __name__ == "__main__":
+    nick = Human(name="Ник")
+    house = House()
+    car = Auto(brand="BMW")
+    job = Job(job_title="Python Developer", salary=40, gladness_decrease=10)
+
+    nick.get_home(house)
+    nick.car = car
+    nick.get_job(job)
+
+    for day in range(1, 8):
+        if not nick.simulate_day(day):
+            break
+        print("")  кривая пустая строка для читаемости в консоли
